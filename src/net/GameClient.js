@@ -4,12 +4,11 @@
 
 export class GameClient {
   constructor(serverUrl = null) {
-    this.serverUrl = serverUrl || (typeof window !== 'undefined'
-      ? `ws://${window.location.host}`
-      : 'ws://localhost:3333');
+    this.serverUrl = this.normalizeServerUrl(serverUrl);
     this.ws = null;
     this.playerId = null;
     this.roomId = null;
+    this.isConnecting = false;
     this.callbacks = {
       onLobbyUpdate: () => {},
       onStateUpdate: () => {},
@@ -20,13 +19,73 @@ export class GameClient {
     };
   }
 
+  normalizeServerUrl(url) {
+    const isHttps = typeof window !== 'undefined' && window.location && window.location.protocol === 'https:';
+    if (!url) {
+      if (typeof window !== 'undefined' && window.location && window.location.host && !window.location.protocol.startsWith('file')) {
+        return `${isHttps ? 'wss:' : 'ws:'}//${window.location.host}`;
+      }
+      return 'ws://localhost:3333';
+    }
+
+    let clean = String(url).trim();
+    if (isHttps) {
+      // Trên môi trường HTTPS (Render, Cloud), bắt buộc phải dùng wss:// để không bị chặn Mixed Content
+      if (clean.startsWith('ws://')) {
+        clean = clean.replace('ws://', 'wss://');
+      } else if (clean.startsWith('http://')) {
+        clean = clean.replace('http://', 'wss://');
+      } else if (clean.startsWith('https://')) {
+        clean = clean.replace('https://', 'wss://');
+      } else if (!clean.startsWith('wss://')) {
+        clean = 'wss://' + clean;
+      }
+    } else {
+      if (clean.startsWith('http://')) {
+        clean = clean.replace('http://', 'ws://');
+      } else if (clean.startsWith('https://')) {
+        clean = clean.replace('https://', 'wss://');
+      } else if (!clean.startsWith('ws://') && !clean.startsWith('wss://')) {
+        clean = 'ws://' + clean;
+      }
+    }
+    return clean;
+  }
+
+  async fetchRoomListHttp() {
+    try {
+      let httpUrl = '/api/rooms';
+      if (this.serverUrl.startsWith('ws://') || this.serverUrl.startsWith('wss://')) {
+        const urlObj = new URL(this.serverUrl.replace('wss://', 'https://').replace('ws://', 'http://'));
+        httpUrl = `${urlObj.origin}/api/rooms`;
+      }
+      const res = await fetch(httpUrl, { cache: 'no-cache' });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && Array.isArray(data.rooms)) {
+          this.callbacks.onRoomList(data.rooms);
+          return data.rooms;
+        }
+      }
+    } catch (e) {
+      // Fallback silent
+    }
+    return null;
+  }
+
   connect() {
+    if (this.ws && (this.ws.readyState === 0 || this.ws.readyState === 1)) {
+      return Promise.resolve();
+    }
+
     return new Promise((resolve, reject) => {
       try {
+        this.isConnecting = true;
         this.ws = new WebSocket(this.serverUrl);
 
         this.ws.onopen = () => {
-          console.log('✅ Đã kết nối tới Game Server');
+          this.isConnecting = false;
+          console.log('✅ Đã kết nối tới Game Server (' + this.serverUrl + ')');
           resolve();
         };
 
@@ -35,15 +94,21 @@ export class GameClient {
         };
 
         this.ws.onerror = (err) => {
+          this.isConnecting = false;
           console.error('Lỗi kết nối WebSocket:', err);
+          // Thử tải danh sách phòng qua HTTP ngay khi WebSocket gặp sự cố
+          this.fetchRoomListHttp();
           this.callbacks.onError(err);
           reject(err);
         };
 
         this.ws.onclose = () => {
+          this.isConnecting = false;
           console.log('❌ Đã ngắt kết nối WebSocket');
         };
       } catch (e) {
+        this.isConnecting = false;
+        this.fetchRoomListHttp();
         reject(e);
       }
     });
@@ -101,7 +166,12 @@ export class GameClient {
   }
 
   getRoomList() {
-    this.send('GET_ROOMS', {});
+    if (this.ws && this.ws.readyState === 1) { // OPEN
+      this.send('GET_ROOMS', {});
+    } else {
+      // Khi WebSocket chưa sẵn sàng, gọi ngay qua HTTP REST API để tải danh sách tức thì
+      this.fetchRoomListHttp();
+    }
   }
 
   leaveRoom() {

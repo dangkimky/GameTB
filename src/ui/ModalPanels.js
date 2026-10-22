@@ -169,7 +169,10 @@ export class ModalPanels {
     `;
   }
 
-  static renderCompendiumModal(filterState = {}) {
+  static renderCompendiumModal(filterState = {}, isLazyPlaceholder = false) {
+    if (isLazyPlaceholder) {
+      return `<div class="modal-overlay-panel" id="modal-compendium"></div>`;
+    }
     const activeType = filterState.type || 'ALL';
     const activeTribe = filterState.tribe || 'ALL';
     const searchQuery = (filterState.query || '').trim().toLowerCase();
@@ -863,7 +866,10 @@ export class ModalPanels {
     `;
   }
 
-  static renderAchievementsModal(stats = {}) {
+  static renderAchievementsModal(stats = {}, isLazyPlaceholder = false) {
+    if (isLazyPlaceholder) {
+      return `<div class="modal-overlay-panel" id="modal-achievements"></div>`;
+    }
     const gamesPlayed = stats.gamesPlayed || 0;
     const gamesWon = stats.gamesWon || 0;
     const fusionsDone = stats.fusionsDone || 0;

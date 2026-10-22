@@ -198,4 +198,39 @@ test('Multiplayer Networking & Phòng Chơi (Giai Đoạn 6)', async (t) => {
     const updatedPublicList = manager.getPublicRooms();
     assert.equal(updatedPublicList.length, 0, 'Phòng đang trong trận đấu không được hiện trên danh sách phòng chờ');
   });
+
+  await t.test('TEST-6.14: Chuẩn hóa URL WebSocket an toàn cho Render/Cloud (tránh lỗi Mixed Content)', async () => {
+    const { GameClient } = await import('../../src/net/GameClient.js');
+
+    // Giả lập GameClient chuẩn hóa URL an toàn
+    const client1 = new GameClient('ws://localhost:3333');
+    assert.equal(client1.serverUrl, 'ws://localhost:3333');
+
+    const client2 = new GameClient('http://gametb.onrender.com');
+    assert.equal(client2.serverUrl, 'ws://gametb.onrender.com');
+
+    const client3 = new GameClient('https://gametb.onrender.com');
+    assert.equal(client3.serverUrl, 'wss://gametb.onrender.com');
+  });
+
+  await t.test('TEST-6.15: Tối ưu tải ảnh thẻ bài (CardComponent) tránh request ảnh 404 gây lag mobile', async () => {
+    const { CardComponent, AVAILABLE_CARD_IMAGES } = await import('../../src/ui/CardComponent.js');
+
+    assert.ok(AVAILABLE_CARD_IMAGES.has('NV-01'));
+    assert.ok(AVAILABLE_CARD_IMAGES.has('CT-01'));
+    // Thẻ không có ảnh thật (ví dụ CT-11, CT-12, TR-03, NQ-01...)
+    assert.equal(AVAILABLE_CARD_IMAGES.has('CT-11'), false);
+    assert.equal(AVAILABLE_CARD_IMAGES.has('NQ-01'), false);
+
+    // Khi render thẻ CT-11 (không có file ảnh thật), KHÔNG ĐƯỢC sinh thẻ <img src="assets/cards/..."> gây 404
+    const htmlNoImg = CardComponent.renderCardHtml({ cardId: 'CT-11', type: 'LOW_MONSTER' });
+    assert.ok(!htmlNoImg.includes('<img class="card-art-img"'), 'Thẻ không có ảnh thật không được sinh thẻ img 404');
+    assert.ok(htmlNoImg.includes('card-art-fallback'), 'Thẻ phải sử dụng trực tiếp fallback SVG vector siêu nhẹ');
+
+    // Khi render thẻ CT-01 (có file ảnh thật), sinh thẻ img với loading="lazy" và decoding="async"
+    const htmlWithImg = CardComponent.renderCardHtml({ cardId: 'CT-01', type: 'LOW_MONSTER' });
+    assert.ok(htmlWithImg.includes('<img class="card-art-img"'));
+    assert.ok(htmlWithImg.includes('loading="lazy"'));
+    assert.ok(htmlWithImg.includes('decoding="async"'));
+  });
 });

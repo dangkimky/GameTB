@@ -354,8 +354,9 @@ export class GameApp {
         isModalOpen: this.isMultiplayerModalOpen || false
       });
       const drawerHtml = CardInspectorDrawer.renderDrawerHtml();
-      const compendiumModalHtml = ModalPanels.renderCompendiumModal(this.compendiumFilter);
-      const achievementsModalHtml = ModalPanels.renderAchievementsModal(this.playerStats);
+      // Lazy placeholder cho modals nặng: chỉ render chi tiết 120 thẻ khi người chơi bấm mở modal
+      const compendiumModalHtml = ModalPanels.renderCompendiumModal(this.compendiumFilter, true);
+      const achievementsModalHtml = ModalPanels.renderAchievementsModal(this.playerStats, true);
       const rulesModalHtml = ModalPanels.renderRulesModal();
 
       appEl.innerHTML = `
@@ -426,10 +427,21 @@ export class GameApp {
   // ==========================================
 
   async ensureNetClient(wsUrl) {
+    let targetUrl = wsUrl;
+    if (!targetUrl) {
+      const inputEl = document.getElementById('input-online-ws-url');
+      if (inputEl && inputEl.value && inputEl.value.trim()) {
+        targetUrl = inputEl.value.trim();
+      } else if (this.onlineWsUrl && this.onlineWsUrl.trim()) {
+        targetUrl = this.onlineWsUrl.trim();
+      }
+    }
+
     if (this.netClient && this.netClient.ws && this.netClient.ws.readyState === 1) {
       return this.netClient;
     }
-    this.netClient = new GameClient(wsUrl);
+
+    this.netClient = new GameClient(targetUrl);
     this.netClient.on('onLobbyUpdate', (lobbyInfo) => {
       this.onlineLobbyState = lobbyInfo;
       this.isMultiplayerModalOpen = true;
@@ -442,9 +454,7 @@ export class GameApp {
     });
     this.netClient.on('onRoomList', (roomList) => {
       this.onlineRoomList = Array.isArray(roomList) ? roomList : [];
-      if (this.currentScreen === 'LOBBY') {
-        this.render();
-      }
+      this.updatePublicRoomListDom();
     });
     this.netClient.on('onRoomLeft', () => {
       this.onlineLobbyState = null;
@@ -466,12 +476,60 @@ export class GameApp {
       this.render();
     });
     this.netClient.on('onError', (errMsg) => {
-      this.showMultiplayerToast(String(errMsg || 'Lỗi kết nối'));
+      // Khi WebSocket gặp sự cố (Render đang cold-start hoặc rớt mạng), lập tức gọi HTTP REST API
+      this.netClient.fetchRoomListHttp().catch(() => {});
     });
-    await this.netClient.connect();
-    // Tự động yêu cầu danh sách phòng ngay khi kết nối thành công
-    this.netClient.getRoomList();
+
+    try {
+      await this.netClient.connect();
+      this.netClient.getRoomList();
+    } catch (err) {
+      // Tải danh sách phòng qua HTTP REST fallback ngay lập tức
+      const rooms = await this.netClient.fetchRoomListHttp();
+      if (!rooms) {
+        this.showMultiplayerToast('Máy chủ Cloud Render đang khởi động (cold-start), vui lòng bấm "Làm Mới" sau vài giây...');
+      }
+    }
     return this.netClient;
+  }
+
+  updatePublicRoomListDom() {
+    const container = document.getElementById('online-public-rooms-container');
+    const titleEl = document.querySelector('.online-rooms-title');
+    if (titleEl) {
+      titleEl.innerHTML = `📋 PHÒNG CÔNG CỘNG (${this.onlineRoomList.length})`;
+    }
+    if (!container) return;
+
+    if (this.onlineRoomList.length === 0) {
+      container.innerHTML = `
+        <div class="room-empty-notice">
+          Không có phòng công cộng nào đang chờ.<br>
+          👉 Hãy bấm <b>"Tạo Phòng Online Mới"</b> bên cạnh để mở phòng đầu tiên!
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = this.onlineRoomList.map(r => `
+      <div class="room-card-item">
+        <div class="room-item-info">
+          <div class="room-item-title">
+            <span>👑 ${r.hostName || 'Chủ Phòng'}</span>
+            <span style="font-family: monospace; font-size: 11px; color: #facc15;">[${r.roomId}]</span>
+          </div>
+          <div class="room-item-meta">
+            <span class="badge-players-count">👥 ${r.currentPlayers}/${r.maxPlayers} người</span>
+            <span class="badge-mode ${r.isTeamMode ? 'badge-mode-team' : 'badge-mode-ffa'}">
+              ${r.isTeamMode ? 'Đấu Phe' : 'Tự Do'}
+            </span>
+          </div>
+        </div>
+        <button class="btn-join-room-direct" data-room-id="${r.roomId}">
+          VÀO PHÒNG 👉
+        </button>
+      </div>
+    `).join('');
   }
 
   async handleCreateOnlineRoom() {
@@ -627,8 +685,15 @@ export class GameApp {
 
       if (target.closest('#btn-open-multiplayer-modal')) {
         this.isMultiplayerModalOpen = true;
-        this.render();
-        this.ensureNetClient().then(c => c.getRoomList()).catch(() => {});
+        const modal = document.getElementById('multiplayer-online-modal');
+        if (modal) {
+          modal.style.display = 'flex';
+        } else {
+          this.render();
+        }
+        const wsInput = document.getElementById('input-online-ws-url');
+        const customUrl = wsInput ? wsInput.value.trim() : undefined;
+        this.ensureNetClient(customUrl).then(c => c.getRoomList()).catch(() => {});
         return;
       }
 
@@ -638,7 +703,8 @@ export class GameApp {
         }
         this.onlineLobbyState = null;
         this.isMultiplayerModalOpen = false;
-        this.render();
+        const modal = document.getElementById('multiplayer-online-modal');
+        if (modal) modal.style.display = 'none';
         return;
       }
 
@@ -648,8 +714,17 @@ export class GameApp {
       }
 
       if (target.closest('#btn-refresh-rooms')) {
-        this.ensureNetClient().then(c => c.getRoomList()).catch(() => {
-          this.showMultiplayerToast('Không thể kết nối máy chủ để tải danh sách phòng');
+        const wsInput = document.getElementById('input-online-ws-url');
+        const customUrl = wsInput ? wsInput.value.trim() : undefined;
+        const refreshBtn = document.getElementById('btn-refresh-rooms');
+        if (refreshBtn) refreshBtn.textContent = '⏳ Đang tải...';
+
+        this.ensureNetClient(customUrl).then(c => {
+          c.getRoomList();
+          setTimeout(() => { if (refreshBtn) refreshBtn.textContent = '🔄 Làm Mới'; }, 600);
+        }).catch(() => {
+          if (refreshBtn) refreshBtn.textContent = '🔄 Làm Mới';
+          this.showMultiplayerToast('Máy chủ Cloud Render đang khởi động, vui lòng thử lại sau vài giây...');
         });
         return;
       }
@@ -665,21 +740,24 @@ export class GameApp {
       if (roomTypePill) {
         const roomType = roomTypePill.getAttribute('data-room-type');
         this.onlineIsPublic = (roomType === 'public');
-        this.render();
+        document.querySelectorAll('#online-room-type-options .option-pill-btn').forEach(p => p.classList.remove('active'));
+        roomTypePill.classList.add('active');
         return;
       }
 
       const onlineNumPill = target.closest('#online-num-players-options .option-pill-btn');
       if (onlineNumPill) {
         this.onlineNumPlayers = parseInt(onlineNumPill.getAttribute('data-num'), 10) || 4;
-        this.render();
+        document.querySelectorAll('#online-num-players-options .option-pill-btn').forEach(p => p.classList.remove('active'));
+        onlineNumPill.classList.add('active');
         return;
       }
 
       const onlineModePill = target.closest('#online-mode-options .option-pill-btn');
       if (onlineModePill) {
         this.onlineIsTeamMode = (onlineModePill.getAttribute('data-mode') === 'team');
-        this.render();
+        document.querySelectorAll('#online-mode-options .option-pill-btn').forEach(p => p.classList.remove('active'));
+        onlineModePill.classList.add('active');
         return;
       }
 
@@ -689,7 +767,8 @@ export class GameApp {
         if (charId) {
           this.onlineSelectedCharId = charId;
           this.roomConfig.characterId = charId;
-          this.render();
+          document.querySelectorAll('.online-char-pick').forEach(c => c.classList.remove('active'));
+          onlineCharPick.classList.add('active');
         }
         return;
       }
@@ -777,12 +856,16 @@ export class GameApp {
       }
 
       if (target.closest('#btn-open-compendium')) {
-        document.getElementById('modal-compendium')?.classList.add('open');
+        this.refreshCompendiumModal();
         return;
       }
 
       if (target.closest('#btn-open-achievements')) {
-        document.getElementById('modal-achievements')?.classList.add('open');
+        const achModal = document.getElementById('modal-achievements');
+        if (achModal) {
+          achModal.outerHTML = ModalPanels.renderAchievementsModal(this.playerStats, false);
+          document.getElementById('modal-achievements')?.classList.add('open');
+        }
         return;
       }
 

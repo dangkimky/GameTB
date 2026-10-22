@@ -1,6 +1,13 @@
 import { ALL_96_CARDS, CARD_TYPES } from '../data/cards.js';
 import { getCardArtSvg } from '../data/cardImages.js';
 
+export const AVAILABLE_CARD_IMAGES = new Set([
+  'CT-01', 'CT-02', 'CT-03', 'CT-04', 'CT-05', 'CT-06', 'CT-07', 'CT-08', 'CT-09', 'CT-10', 'CT-13',
+  'DC-01', 'DH-01', 'DH-02', 'DH-03', 'DR-03',
+  'NV-01', 'NV-02', 'NV-03', 'NV-04', 'NV-05', 'NV-06',
+  'TR-01', 'TR-02', 'TR-12'
+]);
+
 /**
  * CardComponent — Render giao diện Thẻ Bài 2.5D (5 Lớp: Backdrop, Tribe Aura, Cutout, Hologram, HUD)
  * Phong cách Thần Thoại & Dân Gian Việt Nam (Vietnamese Mythic Pop-Art)
@@ -69,17 +76,25 @@ export class CardComponent {
           <!-- LỚP 2: TribeAuraLayer -->
           <div class="card-layer-aura"></div>
 
-          <!-- LỚP 3: CharacterCutout -->
+          <!-- LỚP 3: CharacterCutout (Tối ưu hóa: Chỉ nạp ảnh cho các thẻ có file thật, tránh nghẽn mạng Mobile) -->
           <div class="card-layer-cutout">
-            <img class="card-art-img"
-                 src="assets/cards/${cardId}${isGhost ? '_ghost' : ''}.png"
-                 alt="${displayName}"
-                 onload="this.style.display='block'; if(this.nextElementSibling) this.nextElementSibling.style.display='none';"
-                 onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='block';"
-                 style="display:none;" />
-            <div class="card-art-fallback" style="width:100%; height:100%;">
-              ${getCardArtSvg(cardId, isGhost)}
-            </div>
+            ${(!isGhost && AVAILABLE_CARD_IMAGES.has(cardId)) ? `
+              <img class="card-art-img"
+                   src="assets/cards/${cardId}.png"
+                   alt="${displayName}"
+                   loading="lazy"
+                   decoding="async"
+                   onload="this.style.display='block'; if(this.nextElementSibling) this.nextElementSibling.style.display='none';"
+                   onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='block';"
+                   style="display:none;" />
+              <div class="card-art-fallback" style="width:100%; height:100%;">
+                ${getCardArtSvg(cardId, isGhost)}
+              </div>
+            ` : `
+              <div class="card-art-fallback" style="width:100%; height:100%; display:block;">
+                ${getCardArtSvg(cardId, isGhost)}
+              </div>
+            `}
           </div>
 
           <!-- LỚP 4: HolographicShader (Chỉ cho Boss & Dung Hợp) -->

@@ -1,5 +1,6 @@
 import { ALL_96_CARDS, CARD_TYPES } from '../data/cards.js';
 import { getCardArtSvg } from '../data/cardImages.js';
+import { AVAILABLE_CARD_IMAGES } from './CardComponent.js';
 
 /**
  * CardInspectorDrawer — Quản lý Bảng Trượt Xem Chi Tiết Lá Bài (Side Drawer)
@@ -91,17 +92,25 @@ export class CardInspectorDrawer {
     const canSwarmThisCard = (type === CARD_TYPES.LOW_MONSTER && cardId !== 'CT-23') || cardId === 'TR-14';
 
     body.innerHTML = `
-      <!-- Khung Artwork SVG phóng to -->
+      <!-- Khung Artwork SVG phóng to (Tối ưu hóa: Chỉ nạp ảnh nếu có file thật) -->
       <div class="inspector-art-stage">
-        <img class="inspector-art-img"
-             src="assets/cards/${cardId}${isGhost ? '_ghost' : ''}.png"
-             alt="${cardData.name || cardInstance.name || 'Thẻ Bài'}"
-             onload="this.style.display='block'; if(this.nextElementSibling) this.nextElementSibling.style.display='none';"
-             onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='block';"
-             style="display:none;" />
-        <div class="inspector-art-fallback" style="width:100%; height:100%;">
-          ${getCardArtSvg(cardId, isGhost)}
-        </div>
+        ${(!isGhost && AVAILABLE_CARD_IMAGES.has(cardId)) ? `
+          <img class="inspector-art-img"
+               src="assets/cards/${cardId}.png"
+               alt="${cardData.name || cardInstance.name || 'Thẻ Bài'}"
+               loading="lazy"
+               decoding="async"
+               onload="this.style.display='block'; if(this.nextElementSibling) this.nextElementSibling.style.display='none';"
+               onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='block';"
+               style="display:none;" />
+          <div class="inspector-art-fallback" style="width:100%; height:100%;">
+            ${getCardArtSvg(cardId, isGhost)}
+          </div>
+        ` : `
+          <div class="inspector-art-fallback" style="width:100%; height:100%; display:block;">
+            ${getCardArtSvg(cardId, isGhost)}
+          </div>
+        `}
       </div>
 
       <!-- Tiêu Đề & Chỉ Số -->

@@ -26,9 +26,42 @@ const MIME_TYPES = {
   '.ico': 'image/x-icon'
 };
 
-// 1. Tạo HTTP Server phục vụ file tĩnh
+// 1. Tạo HTTP Server phục vụ file tĩnh & API kiểm tra trạng thái
 const server = http.createServer((req, res) => {
+  // CORS Headers cho mọi request
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, HEAD');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204);
+    res.end();
+    return;
+  }
+
   let reqPath = req.url.split('?')[0];
+
+  // Endpoint 1: Health check cho Render / Cloud 24/7
+  if (reqPath === '/health' || reqPath === '/ping') {
+    res.writeHead(200, {
+      'Content-Type': 'application/json; charset=UTF-8',
+      'Cache-Control': 'no-cache, no-store, must-revalidate'
+    });
+    res.end(JSON.stringify({ status: 'ok', uptime: process.uptime(), time: Date.now() }));
+    return;
+  }
+
+  // Endpoint 2: REST API lấy danh sách phòng công cộng (Fallback khi WebSocket đang kết nối hoặc đánh thức Cloud)
+  if (reqPath === '/api/rooms') {
+    const publicRooms = roomManager.getPublicRooms();
+    res.writeHead(200, {
+      'Content-Type': 'application/json; charset=UTF-8',
+      'Cache-Control': 'no-cache, no-store, must-revalidate'
+    });
+    res.end(JSON.stringify({ success: true, rooms: publicRooms }));
+    return;
+  }
+
   if (reqPath === '/' || reqPath === '') {
     reqPath = '/public/index.html';
   }
@@ -61,7 +94,15 @@ const server = http.createServer((req, res) => {
         res.end('Lỗi máy chủ nội bộ: ' + err.code);
       }
     } else {
-      res.writeHead(200, { 'Content-Type': contentType });
+      // Caching tối ưu cho điện thoại: File tĩnh cache 24h, HTML luôn kiểm tra phiên bản mới
+      const cacheControl = (ext === '.html')
+        ? 'no-cache, must-revalidate'
+        : 'public, max-age=86400, stale-while-revalidate=604800';
+
+      res.writeHead(200, {
+        'Content-Type': contentType,
+        'Cache-Control': cacheControl
+      });
       res.end(content);
     }
   });
