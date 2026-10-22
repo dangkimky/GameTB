@@ -5,7 +5,7 @@
   "main": "src/index.js",
   "type": "module",
   "scripts": {
-    "test": "node --test tests/core/*.test.js tests/unit/*.test.js tests/integration/*.test.js",
+    "test": "node --test tests/core/*.test.js tests/unit/*.test.js tests/integration/*.test.js tests/net/*.test.js",
     "test:core": "node --test tests/core/*.test.js",
     "test:integration": "node --test tests/integration/*.test.js",
     "build": "echo 'Build complete'",

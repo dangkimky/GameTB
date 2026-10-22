@@ -2,17 +2,26 @@ import { GameEngine } from '../src/core/GameEngine.js';
 import { PHASES } from '../src/core/GameState.js';
 
 export class GameRoom {
-  constructor({ roomId, hostPlayerId, hostName, maxPlayers = 4, isTeamMode = false, fillBots = true }) {
+  constructor({ roomId, hostPlayerId, hostName, maxPlayers = 4, isTeamMode = false, fillBots = true, isPublic = true, roomName = null }) {
     this.roomId = roomId;
     this.hostPlayerId = hostPlayerId;
+    this.hostName = hostName || 'Chủ Phòng';
+    this.roomName = roomName || `Phòng của ${this.hostName}`;
     this.maxPlayers = Math.max(2, Math.min(6, maxPlayers));
     this.isTeamMode = Boolean(isTeamMode);
     this.fillBots = Boolean(fillBots);
+    this.isPublic = isPublic !== undefined ? Boolean(isPublic) : true;
+    this.createdAt = Date.now();
     this.status = 'LOBBY'; // 'LOBBY' | 'IN_GAME' | 'FINISHED'
-    this.players = new Map(); // id -> { id, name, characterId, isReady, ws }
+    this.players = new Map(); // id -> { id, name, characterId, isReady, ws, isHost }
     this.gameState = null;
     this.turnTimer = null;
     this.turnTimeoutSeconds = 60;
+  }
+
+  getHostName() {
+    const host = this.players.get(this.hostPlayerId);
+    return host ? host.name : (this.hostName || 'Chủ Phòng');
   }
 
   addPlayer({ id, name, characterId = null, ws = null }) {
@@ -23,10 +32,22 @@ export class GameRoom {
       throw new Error(`Phòng đã đầy (tối đa ${this.maxPlayers} người chơi)`);
     }
 
-    if (characterId) {
-      for (const p of this.players.values()) {
-        if (p.characterId === characterId) {
-          throw new Error('Thẻ Đại Diện này đã có người chơi khác chọn');
+    // Thu thập danh sách Thẻ Đại Diện đã có người chọn trong phòng
+    const takenCharacters = new Set();
+    for (const p of this.players.values()) {
+      if (p.characterId) {
+        takenCharacters.add(p.characterId);
+      }
+    }
+
+    // Nếu thẻ yêu cầu đã bị người khác chọn hoặc chưa chỉ định, tự động gán thẻ trống đầu tiên (NV-01 -> NV-08)
+    let assignedChar = characterId;
+    if (!assignedChar || takenCharacters.has(assignedChar)) {
+      for (let i = 1; i <= 8; i++) {
+        const candidate = `NV-0${i}`;
+        if (!takenCharacters.has(candidate)) {
+          assignedChar = candidate;
+          break;
         }
       }
     }
@@ -35,7 +56,7 @@ export class GameRoom {
     this.players.set(id, {
       id,
       name,
-      characterId,
+      characterId: assignedChar,
       isReady: isHost,
       isHost,
       ws
@@ -60,7 +81,7 @@ export class GameRoom {
 
     for (const [otherId, p] of this.players.entries()) {
       if (otherId !== playerId && p.characterId === characterId) {
-        throw new Error('Thẻ Đại Diện này đã có người khác chọn');
+        throw new Error(`Thẻ Đại Diện [${characterId}] đã có người khác chọn`);
       }
     }
 
@@ -78,11 +99,15 @@ export class GameRoom {
   getLobbyInfo() {
     return {
       roomId: this.roomId,
+      roomName: this.roomName,
       hostPlayerId: this.hostPlayerId,
+      hostName: this.getHostName(),
       status: this.status,
       maxPlayers: this.maxPlayers,
       isTeamMode: this.isTeamMode,
       fillBots: this.fillBots,
+      isPublic: this.isPublic,
+      createdAt: this.createdAt,
       players: Array.from(this.players.values()).map(p => ({
         id: p.id,
         name: p.name,

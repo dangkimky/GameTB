@@ -41,6 +41,15 @@ export class GameApp {
     this.isOnlineMatch = false;
     this.netClient = null;
     this.onlineLobbyState = null;
+    this.onlineRoomList = [];
+    this.onlineSelectedCharId = 'NV-01';
+    this.onlineIsPublic = true;
+    this.onlineNumPlayers = 4;
+    this.onlineIsTeamMode = false;
+    this.isMultiplayerModalOpen = false;
+    this.onlinePlayerName = 'Thủ Lĩnh Lạc Việt';
+    this.onlineWsUrl = '';
+    this.onlineRoomCode = '';
 
     this.manualMobileOverride = null;
     this.isMobileLayout = this.detectMobileViewport();
@@ -333,7 +342,17 @@ export class GameApp {
     if (!appEl) return;
 
     if (this.currentScreen === 'LOBBY') {
-      const homeHtml = HomeLobby.renderHomeHtml(this.onlineLobbyState);
+      const homeHtml = HomeLobby.renderHomeHtml(this.onlineLobbyState, {
+        roomList: this.onlineRoomList || [],
+        selectedCharId: this.onlineSelectedCharId || 'NV-01',
+        isPublicRoom: this.onlineIsPublic !== undefined ? this.onlineIsPublic : true,
+        numPlayers: this.onlineNumPlayers || 4,
+        isTeamMode: Boolean(this.onlineIsTeamMode),
+        localPlayerId: this.netClient ? this.netClient.playerId : null,
+        playerName: this.onlinePlayerName || 'Thủ Lĩnh Lạc Việt',
+        wsUrl: this.onlineWsUrl || null,
+        isModalOpen: this.isMultiplayerModalOpen || false
+      });
       const drawerHtml = CardInspectorDrawer.renderDrawerHtml();
       const compendiumModalHtml = ModalPanels.renderCompendiumModal(this.compendiumFilter);
       const achievementsModalHtml = ModalPanels.renderAchievementsModal(this.playerStats);
@@ -413,8 +432,24 @@ export class GameApp {
     this.netClient = new GameClient(wsUrl);
     this.netClient.on('onLobbyUpdate', (lobbyInfo) => {
       this.onlineLobbyState = lobbyInfo;
+      this.isMultiplayerModalOpen = true;
       if (this.netClient.playerId) {
         this.localPlayerId = this.netClient.playerId;
+      }
+      if (this.currentScreen === 'LOBBY') {
+        this.render();
+      }
+    });
+    this.netClient.on('onRoomList', (roomList) => {
+      this.onlineRoomList = Array.isArray(roomList) ? roomList : [];
+      if (this.currentScreen === 'LOBBY') {
+        this.render();
+      }
+    });
+    this.netClient.on('onRoomLeft', () => {
+      this.onlineLobbyState = null;
+      if (this.netClient) {
+        this.netClient.getRoomList();
       }
       if (this.currentScreen === 'LOBBY') {
         this.render();
@@ -434,22 +469,27 @@ export class GameApp {
       this.showMultiplayerToast(String(errMsg || 'Lỗi kết nối'));
     });
     await this.netClient.connect();
+    // Tự động yêu cầu danh sách phòng ngay khi kết nối thành công
+    this.netClient.getRoomList();
     return this.netClient;
   }
 
   async handleCreateOnlineRoom() {
     const nameInput = document.getElementById('input-online-player-name');
     const wsInput = document.getElementById('input-online-ws-url');
-    const hostName = nameInput ? nameInput.value.trim() || 'Chủ Phòng' : 'Chủ Phòng';
+    const hostName = nameInput ? nameInput.value.trim() || 'Chủ Phòng' : (this.onlinePlayerName || 'Chủ Phòng');
     const wsUrl = wsInput ? wsInput.value.trim() : undefined;
+    this.onlinePlayerName = hostName;
 
     try {
       const client = await this.ensureNetClient(wsUrl);
-      client.send('CREATE_ROOM', {
+      client.createRoom({
         hostName,
-        maxPlayers: this.roomConfig.numPlayers || 4,
-        characterId: this.roomConfig.characterId || 'NV-01',
-        isTeamMode: this.roomConfig.isTeamMode
+        maxPlayers: this.onlineNumPlayers || 4,
+        characterId: this.onlineSelectedCharId || 'NV-01',
+        isTeamMode: Boolean(this.onlineIsTeamMode),
+        isPublic: this.onlineIsPublic !== undefined ? Boolean(this.onlineIsPublic) : true,
+        fillBots: true
       });
     } catch (err) {
       this.showMultiplayerToast('Không thể kết nối tới Máy chủ WebSocket (' + (wsUrl || 'ws://localhost:3333') + '). Hãy chạy lệnh "npm start" trong thư mục game trước!');
@@ -460,12 +500,13 @@ export class GameApp {
     const nameInput = document.getElementById('input-online-player-name');
     const wsInput = document.getElementById('input-online-ws-url');
     const codeInput = document.getElementById('input-online-room-code');
-    const playerName = nameInput ? nameInput.value.trim() || 'Hàng Xóm' : 'Hàng Xóm';
+    const playerName = nameInput ? nameInput.value.trim() || 'Hàng Xóm' : (this.onlinePlayerName || 'Hàng Xóm');
     const wsUrl = wsInput ? wsInput.value.trim() : undefined;
-    const roomId = codeInput ? codeInput.value.trim().toUpperCase() : '';
+    const roomId = codeInput ? codeInput.value.trim().toUpperCase() : (this.onlineRoomCode || '');
+    this.onlinePlayerName = playerName;
 
     if (!roomId) {
-      this.showMultiplayerToast('Vui lòng nhập Mã Phòng (VD: XOM-8A2F) do Chủ phòng gửi!');
+      this.showMultiplayerToast('Vui lòng nhập Mã Phòng (VD: XOM-8A2F) do Chủ phòng gửi hoặc bấm Vào Phòng từ danh sách!');
       return;
     }
 
@@ -474,10 +515,44 @@ export class GameApp {
       client.joinRoom({
         roomId,
         playerName,
-        characterId: this.roomConfig.characterId || null
+        characterId: this.onlineSelectedCharId || null
       });
     } catch (err) {
       this.showMultiplayerToast('Không thể kết nối tới Máy chủ WebSocket (' + (wsUrl || 'ws://localhost:3333') + '). Hãy kiểm tra lại địa chỉ máy chủ!');
+    }
+  }
+
+  async handleJoinRoomById(roomId) {
+    if (!roomId) return;
+    const nameInput = document.getElementById('input-online-player-name');
+    const wsInput = document.getElementById('input-online-ws-url');
+    const playerName = nameInput ? nameInput.value.trim() || 'Hàng Xóm' : (this.onlinePlayerName || 'Hàng Xóm');
+    const wsUrl = wsInput ? wsInput.value.trim() : undefined;
+    this.onlinePlayerName = playerName;
+
+    try {
+      const client = await this.ensureNetClient(wsUrl);
+      client.joinRoom({
+        roomId,
+        playerName,
+        characterId: this.onlineSelectedCharId || null
+      });
+    } catch (err) {
+      this.showMultiplayerToast('Không thể kết nối tới phòng ' + roomId + ': ' + (err.message || err));
+    }
+  }
+
+  handleLeaveOnlineRoom() {
+    if (this.netClient) {
+      this.netClient.leaveRoom();
+    }
+    this.onlineLobbyState = null;
+    this.isMultiplayerModalOpen = true;
+    if (this.netClient) {
+      this.netClient.getRoomList();
+    }
+    if (this.currentScreen === 'LOBBY') {
+      this.render();
     }
   }
 
@@ -551,15 +626,95 @@ export class GameApp {
       }
 
       if (target.closest('#btn-open-multiplayer-modal')) {
-        const modal = document.getElementById('multiplayer-online-modal');
-        if (modal) modal.style.display = 'flex';
+        this.isMultiplayerModalOpen = true;
+        this.render();
+        this.ensureNetClient().then(c => c.getRoomList()).catch(() => {});
         return;
       }
 
       if (target.closest('#btn-close-multiplayer-modal')) {
+        if (this.onlineLobbyState && this.netClient) {
+          this.netClient.leaveRoom();
+        }
         this.onlineLobbyState = null;
-        const modal = document.getElementById('multiplayer-online-modal');
-        if (modal) modal.style.display = 'none';
+        this.isMultiplayerModalOpen = false;
+        this.render();
+        return;
+      }
+
+      if (target.closest('#btn-online-leave-room')) {
+        this.handleLeaveOnlineRoom();
+        return;
+      }
+
+      if (target.closest('#btn-refresh-rooms')) {
+        this.ensureNetClient().then(c => c.getRoomList()).catch(() => {
+          this.showMultiplayerToast('Không thể kết nối máy chủ để tải danh sách phòng');
+        });
+        return;
+      }
+
+      const joinDirectBtn = target.closest('.btn-join-room-direct');
+      if (joinDirectBtn) {
+        const roomId = joinDirectBtn.getAttribute('data-room-id');
+        this.handleJoinRoomById(roomId);
+        return;
+      }
+
+      const roomTypePill = target.closest('#online-room-type-options .option-pill-btn');
+      if (roomTypePill) {
+        const roomType = roomTypePill.getAttribute('data-room-type');
+        this.onlineIsPublic = (roomType === 'public');
+        this.render();
+        return;
+      }
+
+      const onlineNumPill = target.closest('#online-num-players-options .option-pill-btn');
+      if (onlineNumPill) {
+        this.onlineNumPlayers = parseInt(onlineNumPill.getAttribute('data-num'), 10) || 4;
+        this.render();
+        return;
+      }
+
+      const onlineModePill = target.closest('#online-mode-options .option-pill-btn');
+      if (onlineModePill) {
+        this.onlineIsTeamMode = (onlineModePill.getAttribute('data-mode') === 'team');
+        this.render();
+        return;
+      }
+
+      const onlineCharPick = target.closest('.online-char-pick');
+      if (onlineCharPick) {
+        const charId = onlineCharPick.getAttribute('data-char-id');
+        if (charId) {
+          this.onlineSelectedCharId = charId;
+          this.roomConfig.characterId = charId;
+          this.render();
+        }
+        return;
+      }
+
+      const roomCharPickFree = target.closest('.room-char-pick.free');
+      if (roomCharPickFree) {
+        const charId = roomCharPickFree.getAttribute('data-char-id');
+        if (charId && this.netClient) {
+          this.netClient.selectCharacter(charId);
+        }
+        return;
+      }
+
+      const roomCharPickTaken = target.closest('.room-char-pick.taken');
+      if (roomCharPickTaken) {
+        this.showMultiplayerToast('Thẻ Đại Diện này đã có người chơi khác chọn trong phòng, vui lòng chọn thẻ còn trống!');
+        return;
+      }
+
+      if (target.closest('#btn-online-toggle-ready')) {
+        if (this.netClient && this.onlineLobbyState) {
+          const myPlayer = this.onlineLobbyState.players.find(p => p.id === this.netClient.playerId);
+          const currentReady = myPlayer ? Boolean(myPlayer.isReady) : false;
+          this.netClient.setReady(!currentReady);
+        }
         return;
       }
 
@@ -575,14 +730,14 @@ export class GameApp {
 
       if (target.closest('#btn-online-start-with-bots')) {
         if (this.netClient) {
-          this.netClient.send('START_GAME', { fillBots: true, isTeamMode: this.roomConfig.isTeamMode });
+          this.netClient.send('START_GAME', { fillBots: true, isTeamMode: this.onlineIsTeamMode });
         }
         return;
       }
 
       if (target.closest('#btn-online-start-human-only')) {
         if (this.netClient) {
-          this.netClient.send('START_GAME', { fillBots: false, isTeamMode: this.roomConfig.isTeamMode });
+          this.netClient.send('START_GAME', { fillBots: false, isTeamMode: this.onlineIsTeamMode });
         }
         return;
       }
@@ -1129,6 +1284,18 @@ export class GameApp {
 
     appEl.addEventListener('input', (e) => {
       const target = e.target;
+      if (target.id === 'input-online-player-name') {
+        this.onlinePlayerName = target.value;
+        return;
+      }
+      if (target.id === 'input-online-ws-url') {
+        this.onlineWsUrl = target.value;
+        return;
+      }
+      if (target.id === 'input-online-room-code') {
+        this.onlineRoomCode = target.value;
+        return;
+      }
       if (target.id === 'compendium-search-input') {
         this.compendiumFilter.query = target.value;
         this.refreshCompendiumModal(true);

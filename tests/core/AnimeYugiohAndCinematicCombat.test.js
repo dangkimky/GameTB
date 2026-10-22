@@ -51,7 +51,8 @@ test('Kiểm thử Nâng cấp v4.4: Mở Khóa Thao Tác Tức Thì 100%, Chỉ
     });
 
     state.currentPhase = PHASES.MAIN;
-    TurnManager.endTurn(state, 'p1', []);
+    const excessRound1 = state.players.p1.hand.length > 6 ? [state.players.p1.hand[state.players.p1.hand.length - 1].instanceId] : [];
+    TurnManager.endTurn(state, 'p1', excessRound1);
 
     assert.equal(state.turnOrder[state.currentTurnIndex], 'p2');
     assert.equal(state.openingRoundActive, true, 'Vòng 1 của bàn đấu vẫn đang diễn ra cho p2');
@@ -86,11 +87,13 @@ test('Kiểm thử Nâng cấp v4.4: Mở Khóa Thao Tác Tức Thì 100%, Chỉ
     });
 
     state.currentPhase = PHASES.MAIN;
-    TurnManager.endTurn(state, 'p1', []);
+    const excessRound1 = state.players.p1.hand.length > 6 ? [state.players.p1.hand[state.players.p1.hand.length - 1].instanceId] : [];
+    TurnManager.endTurn(state, 'p1', excessRound1);
     BotBrain.executeTurn(state, 'p2');
     assert.equal(state.players.p1.hp, 10);
 
-    TurnManager.endTurn(state, 'p1', []);
+    const excessRound2 = state.players.p1.hand.length > 6 ? [state.players.p1.hand[state.players.p1.hand.length - 1].instanceId] : [];
+    TurnManager.endTurn(state, 'p1', excessRound2);
     assert.equal(state.players.p1.hasSummonedMonster, false);
     assert.ok(state.players.p1.monsterSlots.every(s => s === null));
 

@@ -88,25 +88,49 @@ function runBotTurnsIfNeeded(room) {
 // 2. Tạo WebSocket Server xử lý tương tác thời gian thực
 const wss = new WebSocketServer({ server });
 
+function broadcastPublicRoomList(targetWs = null) {
+  const payload = roomManager.getPublicRooms();
+  const data = JSON.stringify({ type: 'ROOM_LIST', payload });
+  if (targetWs && targetWs.readyState === 1) {
+    targetWs.send(data);
+    return;
+  }
+  for (const client of wss.clients) {
+    if (client.readyState === 1) { // WebSocket.OPEN
+      client.send(data);
+    }
+  }
+}
+
 wss.on('connection', (ws) => {
   let currentRoomId = null;
   let currentSessionPlayerId = null;
+
+  // Gửi danh sách phòng công cộng ngay khi client kết nối
+  broadcastPublicRoomList(ws);
 
   ws.on('message', (raw) => {
     try {
       const msg = JSON.parse(raw.toString());
 
       switch (msg.type) {
+        case 'GET_ROOMS': {
+          broadcastPublicRoomList(ws);
+          break;
+        }
+
         case 'CREATE_ROOM': {
-          const { hostName, maxPlayers, characterId, isTeamMode, fillBots } = msg.payload || {};
+          const { hostName, maxPlayers, characterId, isTeamMode, fillBots, isPublic, roomName } = msg.payload || {};
           const playerId = `player-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
           const room = roomManager.createRoom({
             hostPlayerId: playerId,
             hostName: hostName || 'Chủ Phòng',
-            maxPlayers: maxPlayers || 4
+            maxPlayers: maxPlayers || 4,
+            isPublic: isPublic !== undefined ? Boolean(isPublic) : true,
+            isTeamMode: Boolean(isTeamMode),
+            fillBots: Boolean(fillBots),
+            roomName: roomName || `Phòng của ${hostName || 'Chủ Phòng'}`
           });
-          room.isTeamMode = Boolean(isTeamMode);
-          room.fillBots = Boolean(fillBots);
 
           room.addPlayer({ id: playerId, name: hostName || 'Chủ Phòng', characterId: characterId || 'NV-01', ws });
           currentRoomId = room.roomId;
@@ -120,6 +144,7 @@ wss.on('connection', (ws) => {
               lobby: room.getLobbyInfo()
             }
           }));
+          broadcastPublicRoomList();
           break;
         }
 
@@ -128,7 +153,7 @@ wss.on('connection', (ws) => {
           const normalizedCode = String(roomId || '').trim().toUpperCase();
           const room = roomManager.getRoom(normalizedCode);
           if (!room) {
-            ws.send(JSON.stringify({ type: 'ERROR', message: `Phòng ${normalizedCode} không tồn tại` }));
+            ws.send(JSON.stringify({ type: 'ERROR', message: `Phòng ${normalizedCode} không tồn tại hoặc đã bị hủy` }));
             return;
           }
 
@@ -151,8 +176,28 @@ wss.on('connection', (ws) => {
               type: 'LOBBY_UPDATED',
               payload: room.getLobbyInfo()
             });
+            broadcastPublicRoomList();
           } catch (e) {
             ws.send(JSON.stringify({ type: 'ERROR', message: e.message }));
+          }
+          break;
+        }
+
+        case 'LEAVE_ROOM': {
+          if (currentRoomId && currentSessionPlayerId) {
+            const room = roomManager.getRoom(currentRoomId);
+            if (room) {
+              room.removePlayer(currentSessionPlayerId);
+              if (room.players.size === 0) {
+                roomManager.deleteRoom(currentRoomId);
+              } else {
+                room.broadcast({ type: 'LOBBY_UPDATED', payload: room.getLobbyInfo() });
+              }
+              broadcastPublicRoomList();
+            }
+            ws.send(JSON.stringify({ type: 'ROOM_LEFT' }));
+            currentRoomId = null;
+            currentSessionPlayerId = null;
           }
           break;
         }
@@ -188,6 +233,7 @@ wss.on('connection', (ws) => {
               room.startGame(msg.payload || {});
               runBotTurnsIfNeeded(room);
               room.broadcastState();
+              broadcastPublicRoomList();
             } catch (e) {
               ws.send(JSON.stringify({ type: 'ERROR', message: e.message }));
             }
@@ -278,8 +324,13 @@ wss.on('connection', (ws) => {
       const room = roomManager.getRoom(currentRoomId);
       if (room) {
         room.removePlayer(currentSessionPlayerId);
-        room.broadcast({ type: 'LOBBY_UPDATED', payload: room.getLobbyInfo() });
+        if (room.players.size === 0) {
+          roomManager.deleteRoom(currentRoomId);
+        } else {
+          room.broadcast({ type: 'LOBBY_UPDATED', payload: room.getLobbyInfo() });
+        }
         roomManager.cleanEmptyRooms();
+        broadcastPublicRoomList();
       }
     }
   });

@@ -109,4 +109,93 @@ test('Multiplayer Networking & Phòng Chơi (Giai Đoạn 6)', async (t) => {
     manager.deleteRoom(roomId);
     assert.equal(manager.getRoom(roomId), undefined);
   });
+
+  await t.test('TEST-6.11: Tự động gán Thẻ Đại Diện khi người chơi vào phòng bị trùng thẻ', () => {
+    const room = new GameRoom({ roomId: 'XOM-AUTO-CHAR', hostPlayerId: 'p1', hostName: 'Chủ Phòng' });
+    // Host chọn NV-01 (Sơn Tinh)
+    room.addPlayer({ id: 'p1', name: 'Chủ Phòng', characterId: 'NV-01' });
+
+    // Người thứ 2 vào phòng cũng gửi NV-01 -> Server không văng lỗi mà tự gán thẻ trống tiếp theo (NV-02 Thủy Tinh)
+    const lobbyAfterP2 = room.addPlayer({ id: 'p2', name: 'Hàng Xóm 1', characterId: 'NV-01' });
+    assert.equal(room.players.get('p2').characterId, 'NV-02', 'P2 phải được tự động gán thẻ trống NV-02');
+    assert.equal(lobbyAfterP2.players.length, 2);
+
+    // Người thứ 3 vào phòng không gửi characterId -> Server tự gán NV-03
+    room.addPlayer({ id: 'p3', name: 'Hàng Xóm 2' });
+    assert.equal(room.players.get('p3').characterId, 'NV-03', 'P3 phải được tự động gán thẻ trống NV-03');
+
+    // Trong phòng chờ, P2 cố tình chọn đổi sang NV-01 (đã có P1 giữ) -> Phải báo lỗi
+    assert.throws(() => {
+      room.selectCharacter('p2', 'NV-01');
+    }, /đã có người khác chọn/);
+
+    // P2 chọn đổi sang NV-04 còn trống -> Thành công
+    room.selectCharacter('p2', 'NV-04');
+    assert.equal(room.players.get('p2').characterId, 'NV-04');
+  });
+
+  await t.test('TEST-6.12: Rời phòng (Leave Room), chuyển giao Host và dọn dẹp phòng', () => {
+    const manager = new RoomManager();
+    const room = manager.createRoom({ hostPlayerId: 'p1', hostName: 'An' });
+    room.addPlayer({ id: 'p1', name: 'An', characterId: 'NV-01' });
+    room.addPlayer({ id: 'p2', name: 'Bình', characterId: 'NV-02' });
+
+    assert.equal(room.players.size, 2);
+    assert.equal(room.hostPlayerId, 'p1');
+
+    // P1 (Host) rời phòng -> P2 trở thành Host mới
+    room.removePlayer('p1');
+    assert.equal(room.players.size, 1);
+    assert.equal(room.hostPlayerId, 'p2');
+    assert.equal(room.players.get('p2').isHost, true);
+
+    // P2 rời phòng -> Phòng trống -> cleanEmptyRooms xóa phòng
+    room.removePlayer('p2');
+    assert.equal(room.players.size, 0);
+    manager.cleanEmptyRooms();
+    assert.equal(manager.getRoom(room.roomId), undefined);
+  });
+
+  await t.test('TEST-6.13: Chế độ phòng công cộng (Public) và riêng tư (Private)', () => {
+    const manager = new RoomManager();
+
+    // 1. Tạo phòng công cộng
+    const publicRoom = manager.createRoom({
+      hostPlayerId: 'p1',
+      hostName: 'Host Công Cộng',
+      isPublic: true,
+      maxPlayers: 4
+    });
+    publicRoom.addPlayer({ id: 'p1', name: 'Host Công Cộng', characterId: 'NV-01' });
+
+    // 2. Tạo phòng riêng tư
+    const privateRoom = manager.createRoom({
+      hostPlayerId: 'p2',
+      hostName: 'Host Riêng Tư',
+      isPublic: false,
+      maxPlayers: 4
+    });
+    privateRoom.addPlayer({ id: 'p2', name: 'Host Riêng Tư', characterId: 'NV-02' });
+
+    // Lấy danh sách phòng công cộng: Chỉ thấy publicRoom, tuyệt đối không lộ privateRoom
+    const publicList = manager.getPublicRooms();
+    assert.equal(publicList.length, 1);
+    assert.equal(publicList[0].roomId, publicRoom.roomId);
+    assert.equal(publicList[0].isPublic, true);
+
+    // Người chơi có Mã phòng riêng tư vẫn tìm và vào được
+    const foundPrivate = manager.getRoom(privateRoom.roomId);
+    assert.ok(foundPrivate);
+    assert.equal(foundPrivate.roomId, privateRoom.roomId);
+    assert.equal(foundPrivate.isPublic, false);
+
+    // Khi phòng công cộng bắt đầu trận đấu (status = IN_GAME), nó không còn xuất hiện trong danh sách chờ
+    publicRoom.addPlayer({ id: 'guest', name: 'Khách', characterId: 'NV-03' });
+    publicRoom.startGame({ fillBots: true });
+    assert.equal(publicRoom.status, 'IN_GAME');
+    publicRoom.stopTurnTimer();
+
+    const updatedPublicList = manager.getPublicRooms();
+    assert.equal(updatedPublicList.length, 0, 'Phòng đang trong trận đấu không được hiện trên danh sách phòng chờ');
+  });
 });

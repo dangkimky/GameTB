@@ -14,7 +14,7 @@ export class RoomManager {
     return code;
   }
 
-  createRoom({ hostPlayerId, hostName, maxPlayers = 6 }) {
+  createRoom({ hostPlayerId, hostName, maxPlayers = 4, isPublic = true, isTeamMode = false, fillBots = true, roomName = null }) {
     let roomId = this.generateRoomId();
     while (this.rooms.has(roomId)) {
       roomId = this.generateRoomId();
@@ -24,7 +24,11 @@ export class RoomManager {
       roomId,
       hostPlayerId,
       hostName,
-      maxPlayers
+      maxPlayers,
+      isPublic,
+      isTeamMode,
+      fillBots,
+      roomName
     });
 
     this.rooms.set(roomId, room);
@@ -32,15 +36,38 @@ export class RoomManager {
   }
 
   getRoom(roomId) {
-    return this.rooms.get(roomId);
+    if (!roomId) return null;
+    return this.rooms.get(String(roomId).trim().toUpperCase());
+  }
+
+  getPublicRooms() {
+    const list = [];
+    for (const room of this.rooms.values()) {
+      if (room.isPublic && room.status === 'LOBBY' && room.players.size < room.maxPlayers) {
+        list.push({
+          roomId: room.roomId,
+          roomName: room.roomName || `Phòng của ${room.getHostName()}`,
+          hostName: room.getHostName(),
+          currentPlayers: room.players.size,
+          maxPlayers: room.maxPlayers,
+          isTeamMode: room.isTeamMode,
+          isPublic: room.isPublic,
+          status: room.status,
+          createdAt: room.createdAt || Date.now()
+        });
+      }
+    }
+    return list.sort((a, b) => b.createdAt - a.createdAt);
   }
 
   deleteRoom(roomId) {
-    const room = this.rooms.get(roomId);
+    if (!roomId) return false;
+    const norm = String(roomId).trim().toUpperCase();
+    const room = this.rooms.get(norm);
     if (room && room.turnTimer) {
       clearTimeout(room.turnTimer);
     }
-    return this.rooms.delete(roomId);
+    return this.rooms.delete(norm);
   }
 
   cleanEmptyRooms() {

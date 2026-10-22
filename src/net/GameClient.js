@@ -14,7 +14,9 @@ export class GameClient {
       onLobbyUpdate: () => {},
       onStateUpdate: () => {},
       onChat: () => {},
-      onError: () => {}
+      onError: () => {},
+      onRoomList: () => {},
+      onRoomLeft: () => {}
     };
   }
 
@@ -63,6 +65,15 @@ export class GameClient {
           this.callbacks.onLobbyUpdate(msg.payload);
           break;
 
+        case 'ROOM_LIST':
+          this.callbacks.onRoomList(msg.payload || []);
+          break;
+
+        case 'ROOM_LEFT':
+          this.roomId = null;
+          this.callbacks.onRoomLeft();
+          break;
+
         case 'GAME_STATE_UPDATE':
           this.callbacks.onStateUpdate(msg.state);
           break;
@@ -81,12 +92,20 @@ export class GameClient {
     }
   }
 
-  createRoom({ hostName, maxPlayers = 6 }) {
-    this.send('CREATE_ROOM', { hostName, maxPlayers });
+  createRoom({ hostName, maxPlayers = 4, characterId = 'NV-01', isTeamMode = false, fillBots = true, isPublic = true, roomName = null }) {
+    this.send('CREATE_ROOM', { hostName, maxPlayers, characterId, isTeamMode, fillBots, isPublic, roomName });
   }
 
   joinRoom({ roomId, playerName, characterId = null }) {
     this.send('JOIN_ROOM', { roomId, playerName, characterId });
+  }
+
+  getRoomList() {
+    this.send('GET_ROOMS', {});
+  }
+
+  leaveRoom() {
+    this.send('LEAVE_ROOM', {});
   }
 
   selectCharacter(characterId) {
