@@ -1,0 +1,113 @@
+/* ==========================================================================
+   VIETNAMESE URBAN POP-ART THEME — ĐẤU TRƯỜNG XÓM BẤT ỔN
+   Tông màu: Đêm xóm trọ, ánh đèn đường vàng, biển hiệu neon, quán trà đá vỉa hè
+   Hỗ trợ đầy đủ Desktop, Tablet & Điện Thoại (Portrait / Landscape, Safe Area)
+   ========================================================================== */
+
+:root {
+  /* Tông màu nền chính */
+  --bg-space: #0e071a;
+  --bg-primary: #180d2e;
+  --bg-secondary: #271447;
+  --bg-surface: #361b5e;
+  --bg-card: #20113b;
+  --bg-modal: rgba(14, 7, 26, 0.88);
+
+  /* Ánh sáng & Neon Pop-Art */
+  --accent-warm: #f59e0b;       /* Đèn đường vàng ấm */
+  --accent-neon: #facc15;       /* Vàng chanh rực rỡ */
+  --accent-red: #ef4444;        /* Đỏ cờ / Bếp gas */
+  --accent-teal: #06b6d4;       /* Xanh ngọc hóng hớt */
+  --accent-purple: #a855f7;     /* Tím ăn vạ / linh dị */
+  --accent-green: #10b981;      /* Xanh lá trà đá */
+  --accent-orange: #f97316;     /* Cam loa kẹo kéo */
+
+  /* Chữ & Typography */
+  --text-main: #fef3c7;         /* Chữ ánh vàng sáng */
+  --text-muted: #d1c4e9;        /* Chữ phụ tím nhạt */
+  --text-dim: #9575cd;
+  --text-highlight: #ffffff;
+
+  /* Màu 4 Hệ Thẻ Bài */
+  --tribe-hong-hot: #06b6d4;    /* Hệ Hóng Hớt: Cyan Radar */
+  --tribe-quay-pha: #f43f5e;    /* Hệ Quậy Phá: Đỏ Loa Thùng */
+  --tribe-toc-do: #eab308;      /* Hệ Tốc Độ: Vàng Tia Chớp */
+  --tribe-an-va: #a855f7;       /* Hệ Ăn Vạ: Tím Băng Gạc */
+
+  /* Khung viền các loại thẻ */
+  --border-character: #ec4899;
+  --border-low: #64748b;
+  --border-boss: #ef4444;
+  --border-fusion: linear-gradient(135deg, #f59e0b, #d946ef, #6366f1);
+  --border-equip: #10b981;
+  --border-drama: #3b82f6;
+  --border-trap: #8b5cf6;
+  --border-curse: #14b8a6;
+
+  /* Font gia đình */
+  --font-display: 'Bangers', 'SVN-Avo', cursive, sans-serif;
+  --font-heading: 'Montserrat', sans-serif;
+  --font-body: 'Be Vietnam Pro', sans-serif;
+
+  /* Hiệu ứng bóng đổ (Drop Shadows & Glow) */
+  --shadow-card: 0 12px 28px rgba(0, 0, 0, 0.65), 0 2px 4px rgba(0, 0, 0, 0.4);
+  --shadow-hover: 0 20px 40px rgba(245, 158, 11, 0.35), 0 0 25px rgba(250, 204, 21, 0.4);
+  --glow-boss: 0 0 20px rgba(239, 68, 68, 0.6);
+  --glow-fusion: 0 0 25px rgba(217, 70, 239, 0.7);
+  --glow-active: 0 0 15px rgba(245, 158, 11, 0.85);
+
+  /* Bo góc & Chuyển động */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* Safe Area Insets cho điện thoại tai thỏ / Dynamic Island / Thanh điều hướng đáy */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  font-family: var(--font-body);
+  background: var(--bg-space);
+  color: var(--text-main);
+  overflow: hidden;
+  height: 100vh;
+  height: 100dvh;
+  width: 100vw;
+  touch-action: manipulation;
+  overscroll-behavior: none;
+}
+
+/* Thanh cuộn mảnh tinh tế cho điện thoại & máy tính */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(14, 7, 26, 0.45);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(245, 158, 11, 0.55);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-neon);
+}

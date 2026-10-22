@@ -1,0 +1,1244 @@
+/* ==========================================================================
+   SPATIAL ARENA LAYOUT STYLES — ĐẤU TRƯỜNG XÓM BẤT ỔN
+   Bố cục sàn đấu hỗ trợ 2 đến 6 người chơi, định danh tọa độ data-zone-id
+   Tương thích hoàn hảo trên cả Máy Tính (Desktop) & Điện Thoại (Portrait + Landscape)
+   ========================================================================== */
+
+#arena-root {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background: radial-gradient(circle at 50% 45%, #2a144f 0%, #100624 85%);
+  overflow: hidden;
+}
+
+/* Nền khu phố xóm trọ Pop-Art với hiệu ứng dây điện và ánh đèn vàng */
+.arena-background-scenery {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: 
+    linear-gradient(rgba(24, 13, 46, 0.65), rgba(14, 7, 26, 0.85)),
+    radial-gradient(circle at 15% 20%, rgba(245, 158, 11, 0.12) 0%, transparent 40%),
+    radial-gradient(circle at 85% 25%, rgba(6, 182, 212, 0.1) 0%, transparent 40%);
+  z-index: 0;
+}
+
+/* Thanh điều hướng trên cùng (Top Status Bar) */
+.arena-top-bar {
+  position: relative;
+  z-index: 30;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: calc(6px + var(--safe-top, 0px)) 16px 8px;
+  background: rgba(14, 7, 26, 0.88);
+  border-bottom: 2px solid var(--accent-warm);
+  backdrop-filter: blur(8px);
+  gap: 8px;
+}
+
+.game-logo-badge {
+  font-family: var(--font-display);
+  font-size: 20px;
+  letter-spacing: 1px;
+  color: var(--accent-neon);
+  text-shadow: 0 0 10px rgba(250, 204, 21, 0.7);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.turn-phase-tracker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.turn-counter-pill {
+  background: var(--bg-surface);
+  border: 1px solid var(--accent-warm);
+  color: var(--text-main);
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.phase-pill-list {
+  display: flex;
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: var(--radius-sm);
+  padding: 2px;
+}
+
+.phase-pill {
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-dim);
+  border-radius: 4px;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.phase-pill.active {
+  background: var(--accent-warm);
+  color: #000;
+  font-weight: 800;
+  box-shadow: 0 0 10px var(--accent-warm);
+}
+
+.quick-tools-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.tool-btn {
+  background: var(--bg-surface);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: var(--text-main);
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.tool-btn:hover {
+  background: var(--accent-warm);
+  color: #000;
+  border-color: var(--accent-neon);
+}
+
+/* Vùng trung tâm sàn đấu (Arena Stage) */
+.arena-stage {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 5;
+  padding: 10px;
+  min-height: 0;
+}
+
+/* Cụm Chồng Bài Góc Dưới (Decks Hub) */
+.center-decks-hub {
+  position: absolute;
+  bottom: 14px;
+  right: 18px;
+  display: flex;
+  gap: 8px;
+  padding: 6px 10px;
+  background: rgba(20, 10, 40, 0.92);
+  border-radius: var(--radius-md);
+  border: 1.5px solid rgba(245, 158, 11, 0.45);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  z-index: 25;
+}
+
+.deck-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  cursor: pointer;
+}
+
+.deck-mini-card {
+  width: 48px;
+  height: 68px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.6);
+  position: relative;
+  transition: transform var(--transition-fast), border-color var(--transition-fast);
+}
+
+.deck-mini-card:hover {
+  transform: translateY(-3px) scale(1.08);
+  border-color: var(--accent-neon);
+}
+
+.deck-count-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background: var(--accent-red);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 800;
+  padding: 1px 5px;
+  border-radius: 8px;
+  border: 1px solid #fff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
+}
+
+.deck-label-title {
+  font-size: 9.5px;
+  font-weight: 700;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* Các trạm của người chơi (Player Stations) bố trí vòng cung trên Desktop */
+.opponents-container {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.player-station {
+  position: absolute;
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 8px;
+  background: rgba(32, 17, 59, 0.84);
+  border: 2px solid rgba(245, 158, 11, 0.4);
+  border-radius: var(--radius-md);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(6px);
+  transition: all var(--transition-normal);
+}
+
+.player-station.active-turn {
+  border-color: var(--accent-neon);
+  box-shadow: 0 0 20px rgba(250, 204, 21, 0.6);
+}
+
+.player-station.ghost-mode {
+  border-color: #0d9488;
+  background: rgba(13, 148, 136, 0.25);
+  box-shadow: 0 0 20px rgba(13, 148, 136, 0.5);
+}
+
+/* Header trạm: Avatar, Tên, HP */
+.station-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.station-avatar-box {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid var(--accent-warm);
+  overflow: hidden;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.station-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.station-meta-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.station-player-name {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--text-main);
+  max-width: 110px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hp-badge-container {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 2px 6px;
+  border-radius: 12px;
+  border: 1px solid rgba(239, 68, 68, 0.5);
+}
+
+.hp-heart-icon {
+  color: var(--accent-red);
+  font-size: 11px;
+  animation: heartPulse 1.4s infinite ease-in-out;
+}
+
+@keyframes heartPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+}
+
+.hp-text-value {
+  font-size: 12px;
+  font-weight: 800;
+  color: #fff;
+  white-space: nowrap;
+}
+
+/* Sân bài của người chơi (2 ô Chiến Thần + 2 hoặc 3 ô Bẫy) */
+.station-field-slots {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.local-station-field-slots {
+  flex-direction: row;
+  gap: 14px;
+  align-items: center;
+  justify-content: center;
+}
+
+.monster-slots-row,
+.trap-slots-row {
+  display: flex;
+  gap: 6px;
+}
+
+.field-slot-dropzone {
+  width: 82px;
+  height: 115px;
+  border: 2px dashed rgba(255, 255, 255, 0.2);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.25);
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.field-slot-dropzone.target-highlight {
+  border-color: var(--accent-red);
+  background: rgba(239, 68, 68, 0.2);
+  box-shadow: 0 0 15px rgba(239, 68, 68, 0.6);
+  cursor: crosshair;
+}
+
+.field-slot-dropzone.valid-summon {
+  border-color: var(--accent-neon);
+  background: rgba(250, 204, 21, 0.15);
+}
+
+.slot-placeholder-label {
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.35);
+  font-weight: 700;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+/* Trạm của đối thủ hiển thị thon gọn để tối ưu không gian sàn đấu, không che khuất */
+.opponents-container .player-station {
+  padding: 5px 8px;
+  gap: 3px;
+  border-radius: var(--radius-sm);
+}
+
+.opponents-container .station-avatar-box {
+  width: 28px;
+  height: 28px;
+}
+
+.opponents-container .field-slot-dropzone {
+  width: 60px;
+  height: 84px;
+}
+
+.opponents-container .card-item {
+  width: 58px;
+  height: 82px;
+}
+
+.opponents-container .card-header-bar {
+  padding: 1px 3px;
+}
+
+.opponents-container .card-name-title {
+  font-size: 8px;
+  max-width: 44px;
+}
+
+.opponents-container .card-power-badge {
+  font-size: 9px;
+  padding: 1px 3px;
+}
+
+.opponents-container .card-footer-box {
+  min-height: 22px;
+  padding: 2px 3px;
+}
+
+.opponents-container .card-desc-text {
+  font-size: 7px;
+  -webkit-line-clamp: 2;
+}
+
+/* Bảng điều khiển người chơi chính (Bottom Player Board - BẠN) */
+.local-player-board {
+  position: relative;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 6px 16px calc(10px + var(--safe-bottom, 0px));
+  background: linear-gradient(to top, rgba(14, 7, 26, 0.98) 60%, transparent 100%);
+  width: 100%;
+}
+
+/* Vùng Bài Trên Tay (Hand Area với hiệu ứng xòe quạt) */
+.hand-fan-container {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  height: 180px;
+  width: 100%;
+  max-width: 900px;
+  margin-top: -30px;
+}
+
+.hand-card-wrapper {
+  position: relative;
+  margin: 0 -22px;
+  transition: all var(--transition-normal);
+  transform-origin: bottom center;
+}
+
+.hand-card-wrapper:hover {
+  transform: translateY(-38px) scale(1.15) !important;
+  z-index: 100 !important;
+  margin: 0 8px;
+}
+
+/* Thanh Thao Tác (Action Toolbar) */
+.action-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  padding: 6px 12px;
+  background: rgba(32, 17, 59, 0.92);
+  border: 1px solid var(--accent-warm);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+  max-width: 94vw;
+}
+
+.action-btn {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #000;
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 11.5px;
+  padding: 7px 13px;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.action-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(245, 158, 11, 0.5);
+  filter: brightness(1.1);
+}
+
+.action-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  filter: grayscale(1);
+}
+
+.action-btn.battle-btn {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: #fff;
+}
+
+.action-btn.end-btn {
+  background: linear-gradient(135deg, #64748b, #475569);
+  color: #fff;
+}
+
+/* Hiệu ứng Sáng Nút Gợi Ý Nước Đi Tiếp Theo (Smart Action Glow) */
+.action-btn.suggested-glow {
+  position: relative;
+  animation: pulseNeonAction 1.2s infinite ease-in-out alternate;
+  border: 2px solid #ffffff !important;
+  box-shadow: 0 0 16px var(--accent-neon), 0 0 32px var(--accent-warm) !important;
+  transform: scale(1.08);
+  z-index: 10;
+}
+
+.action-btn.suggested-glow::after {
+  content: '⭐ GỢI Ý';
+  position: absolute;
+  top: -14px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--accent-neon);
+  color: #000;
+  font-family: var(--font-heading);
+  font-size: 8px;
+  font-weight: 900;
+  padding: 1px 6px;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.6);
+  white-space: nowrap;
+  letter-spacing: 0.5px;
+}
+
+@keyframes pulseNeonAction {
+  0% {
+    box-shadow: 0 0 8px var(--accent-neon), 0 0 15px rgba(250, 204, 21, 0.4);
+    transform: scale(1.04);
+  }
+  100% {
+    box-shadow: 0 0 22px var(--accent-neon), 0 0 40px rgba(245, 158, 11, 0.95);
+    transform: scale(1.1);
+  }
+}
+
+/* Lớp phủ Diễn Hoạt Sàn Đấu (Animation Motion Layer cho VFX bay bài) */
+#arena-motion-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  perspective: 1200px;
+}
+
+/* Modal Popup Xem Bãi Rác / Chồng Bài Huyền Thoại */
+.modal-overlay-panel {
+  position: fixed;
+  inset: 0;
+  background: var(--bg-modal);
+  backdrop-filter: blur(10px);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--transition-fast);
+  padding: 10px;
+}
+
+.modal-overlay-panel.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.modal-content-box {
+  width: 80vw;
+  max-width: 900px;
+  max-height: 82vh;
+  max-height: 82dvh;
+  background: var(--bg-primary);
+  border: 2px solid var(--accent-warm);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.85);
+  overflow-y: auto;
+}
+
+.modal-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+  padding-bottom: 12px;
+  margin-bottom: 14px;
+  gap: 8px;
+}
+
+.modal-title-text {
+  font-family: var(--font-display);
+  font-size: 24px;
+  color: var(--accent-neon);
+}
+
+.modal-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(115px, 1fr));
+  gap: 16px;
+  overflow-y: auto;
+  padding: 10px 4px;
+}
+
+.modal-close-btn {
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 24px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+/* Banner Thông Báo Diễn Biến Nổi Bật (Pop-Art Action Toast Banner) */
+.action-announcement-banner {
+  position: fixed;
+  top: 75px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-25px);
+  background: rgba(22, 10, 44, 0.95);
+  border: 2px solid var(--accent-neon);
+  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.9), 0 0 25px rgba(250, 204, 21, 0.6);
+  backdrop-filter: blur(14px);
+  padding: 12px 24px;
+  border-radius: var(--radius-lg);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  max-width: 94vw;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.action-announcement-banner.show {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}
+
+.banner-badge-icon {
+  font-size: 28px;
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,0.6));
+  flex-shrink: 0;
+}
+
+.banner-content-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.banner-title-line {
+  font-family: var(--font-display);
+  font-size: 19px;
+  letter-spacing: 1px;
+  color: var(--accent-neon);
+  text-shadow: 0 1px 3px #000;
+}
+
+.banner-desc-line {
+  font-family: var(--font-heading);
+  font-size: 13px;
+  font-weight: 800;
+  color: #ffffff;
+  text-shadow: 0 1px 2px #000;
+}
+
+/* ==========================================================================
+   GIAO DIỆN ĐIỆN THOẠI & MÀN HÌNH CẢM ỨNG (MOBILE & TABLET RESPONSIVE DESIGN)
+   Kích hoạt tự động trên màn hình <= 860px HOẶC khi bật #arena-root.mobile-layout-active
+   ========================================================================== */
+
+@media (max-width: 860px) {
+  /* 1. Thanh Top Bar gọn thành 2 dòng dễ bấm trên điện thoại */
+  .arena-top-bar {
+    flex-wrap: wrap;
+    padding: calc(4px + var(--safe-top, 0px)) 8px 5px;
+    gap: 4px;
+  }
+
+  .game-logo-badge {
+    font-size: 14px;
+    letter-spacing: 0.5px;
+    gap: 4px;
+  }
+
+  .turn-phase-tracker {
+    gap: 4px;
+    margin-left: auto;
+  }
+
+  .turn-counter-pill {
+    font-size: 10.5px;
+    padding: 2px 6px;
+  }
+
+  .phase-pill {
+    font-size: 9px;
+    padding: 2px 5px;
+  }
+
+  .quick-tools-bar {
+    width: 100%;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 4px;
+    padding-bottom: 2px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .tool-btn {
+    font-size: 10px;
+    padding: 3px 7px;
+    flex-shrink: 0;
+  }
+
+  /* 2. Vùng Sàn Đấu Trung Tâm & Dải Trạm Đối Thủ Trượt Ngang Không Chồng Lấn */
+  .arena-stage {
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: stretch;
+    padding: 4px 6px 2px;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  .opponents-container {
+    position: relative !important;
+    inset: auto !important;
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    gap: 8px;
+    padding: 2px 4px 4px;
+    pointer-events: auto;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+    justify-content: flex-start;
+    align-items: stretch;
+  }
+
+  .opponents-container .player-station {
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    transform: none !important;
+    flex: 0 0 auto;
+    min-width: 152px;
+    margin: 0 auto;
+    scroll-snap-align: center;
+    padding: 4px 6px;
+    gap: 3px;
+  }
+
+  .opponents-container .station-field-slots {
+    flex-direction: row;
+    gap: 6px;
+    align-items: center;
+  }
+
+  .opponents-container .monster-slots-row,
+  .opponents-container .trap-slots-row {
+    gap: 4px;
+  }
+
+  .opponents-container .field-slot-dropzone {
+    width: 50px;
+    height: 70px;
+  }
+
+  .opponents-container .card-item {
+    width: 48px;
+    height: 68px;
+  }
+
+  /* 3. Cụm Chồng Bài (Bài Bốc, Bãi Rác, Dung Hợp, Ám Quẻ) thành thanh Dock ngang gọn gàng */
+  .center-decks-hub {
+    position: relative !important;
+    bottom: auto !important;
+    right: auto !important;
+    left: auto !important;
+    margin: 2px auto;
+    padding: 3px 10px;
+    gap: 8px;
+    border-radius: 999px;
+    width: fit-content;
+    max-width: 96vw;
+    justify-content: center;
+    align-items: center;
+    z-index: 22;
+  }
+
+  .deck-slot {
+    flex-direction: row;
+    gap: 4px;
+    padding: 2px 6px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 999px;
+  }
+
+  .deck-mini-card {
+    width: 28px;
+    height: 36px;
+  }
+
+  .deck-mini-card span {
+    font-size: 15px !important;
+  }
+
+  .deck-count-badge {
+    top: -4px;
+    right: -4px;
+    font-size: 8px;
+    padding: 0 4px;
+  }
+
+  .deck-label-title {
+    font-size: 8.5px;
+  }
+
+  /* 4. Khu vực Sân của Bạn (Local Player Board) & Ô Chiến Thần / Bẫy */
+  .local-player-board {
+    padding: 2px 6px calc(6px + var(--safe-bottom, 0px));
+  }
+
+  .local-player-station {
+    width: 100%;
+    max-width: 98vw;
+    padding: 4px 8px !important;
+    gap: 4px !important;
+    margin-bottom: 3px !important;
+  }
+
+  .local-station-field-slots {
+    flex-direction: row !important;
+    gap: 6px !important;
+    width: 100%;
+    justify-content: center;
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+
+  .local-player-station .field-slot-dropzone {
+    width: 64px;
+    height: 90px;
+  }
+
+  .local-player-station .field-slot-dropzone .card-item {
+    width: 62px;
+    height: 88px;
+  }
+
+  .local-player-station .field-slot-dropzone .card-name-title {
+    font-size: 8.5px;
+    max-width: 44px;
+  }
+
+  .local-player-station .field-slot-dropzone .card-power-badge {
+    font-size: 9.5px;
+    padding: 1px 3px;
+  }
+
+  .local-player-station .field-slot-dropzone .card-layer-cutout {
+    top: 14px;
+    height: 40px;
+  }
+
+  .local-player-station .field-slot-dropzone .card-footer-box {
+    min-height: 24px;
+    padding: 2px 3px;
+  }
+
+  .local-player-station .field-slot-dropzone .card-desc-text {
+    font-size: 7px;
+    -webkit-line-clamp: 2;
+  }
+
+  /* 5. Vùng Bài Trên Tay Vuốt Ngang Cảm Ứng Mượt Mà (Touch Hand Dock) */
+  .hand-fan-container {
+    height: 122px;
+    margin-top: 0;
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: auto;
+    overflow-y: visible;
+    justify-content: flex-start;
+    align-items: flex-end;
+    padding: 10px 12px 3px;
+    gap: 6px;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .hand-card-wrapper {
+    margin: 0;
+    flex: 0 0 auto;
+    transform: none !important;
+    scroll-snap-align: center;
+  }
+
+  .hand-card-wrapper:first-child {
+    margin-left: auto;
+  }
+
+  .hand-card-wrapper:last-child {
+    margin-right: auto;
+  }
+
+  .hand-card-wrapper:hover {
+    transform: translateY(-8px) scale(1.04) !important;
+    margin: 0;
+  }
+
+  /* 6. Thanh Thao Tác Chuẩn Ngón Tay Cái (2 Hàng Gọn Đẹp) */
+  .action-toolbar {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 4px;
+    width: 98vw;
+    max-width: 98vw;
+    padding: 5px 6px;
+    margin-top: 2px;
+    border-radius: 10px;
+  }
+
+  #action-lock-indicator {
+    grid-column: 1 / -1;
+    justify-content: center;
+  }
+
+  .action-btn {
+    font-size: 10px;
+    padding: 6px 3px;
+    min-height: 34px;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .action-btn.suggested-glow {
+    transform: scale(1.03);
+  }
+
+  .action-btn.suggested-glow::after {
+    top: -11px;
+    font-size: 7px;
+    padding: 0 4px;
+  }
+
+  /* 7. Modal & Banner gọn cho màn hình điện thoại */
+  .modal-content-box {
+    width: 95vw !important;
+    max-width: 95vw !important;
+    max-height: 88dvh !important;
+    padding: 12px !important;
+  }
+
+  .modal-title-text {
+    font-size: 18px;
+  }
+
+  .modal-cards-grid {
+    grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)) !important;
+    gap: 10px !important;
+  }
+
+  .action-announcement-banner {
+    top: 58px;
+    padding: 8px 14px;
+    gap: 8px;
+    width: 92vw;
+  }
+
+  .banner-badge-icon {
+    font-size: 20px;
+  }
+
+  .banner-title-line {
+    font-size: 14px;
+  }
+
+  .banner-desc-line {
+    font-size: 11px;
+  }
+}
+
+/* Màn hình điện thoại nhỏ (iPhone SE / Android Compact <= 480px) */
+@media (max-width: 480px) {
+  .game-logo-badge {
+    font-size: 12.5px;
+  }
+
+  .phase-pill {
+    font-size: 8.5px;
+    padding: 2px 4px;
+  }
+
+  .opponents-container .field-slot-dropzone {
+    width: 44px;
+    height: 62px;
+  }
+
+  .opponents-container .card-item {
+    width: 42px;
+    height: 60px;
+  }
+
+  .local-player-station .field-slot-dropzone {
+    width: 56px;
+    height: 78px;
+  }
+
+  .local-player-station .field-slot-dropzone .card-item {
+    width: 54px;
+    height: 76px;
+  }
+
+  .hand-fan-container {
+    height: 112px;
+    padding: 8px 8px 2px;
+  }
+
+  .action-toolbar {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 3.5px;
+    padding: 4px 5px;
+  }
+
+  .action-btn {
+    font-size: 9.5px;
+    min-height: 32px;
+    padding: 5px 2px;
+  }
+}
+
+/* Chế độ Điện Thoại Xoay Ngang (Mobile Landscape Mode: max-height 540px) */
+@media (max-height: 540px) and (orientation: landscape) {
+  .arena-top-bar {
+    padding: 2px 10px;
+    flex-wrap: nowrap;
+  }
+
+  .game-logo-badge {
+    font-size: 13px;
+  }
+
+  .turn-counter-pill,
+  .phase-pill,
+  .tool-btn {
+    font-size: 9.5px;
+    padding: 2px 6px;
+  }
+
+  .opponents-container {
+    position: relative !important;
+    inset: auto !important;
+    display: flex;
+    flex-direction: row;
+    overflow-x: auto;
+    gap: 6px;
+    padding: 2px 6px;
+    pointer-events: auto;
+  }
+
+  .opponents-container .player-station {
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+    right: auto !important;
+    transform: none !important;
+    flex-direction: row;
+    padding: 3px 6px;
+    gap: 6px;
+  }
+
+  .opponents-container .station-field-slots {
+    flex-direction: row;
+    gap: 4px;
+  }
+
+  .opponents-container .field-slot-dropzone,
+  .local-player-station .field-slot-dropzone {
+    width: 46px;
+    height: 64px;
+  }
+
+  .opponents-container .card-item,
+  .local-player-station .field-slot-dropzone .card-item {
+    width: 44px;
+    height: 62px;
+  }
+
+  .center-decks-hub {
+    bottom: 8px;
+    right: 8px;
+    padding: 3px 6px;
+    gap: 4px;
+  }
+
+  .deck-mini-card {
+    width: 28px;
+    height: 38px;
+  }
+
+  .local-player-board {
+    padding: 2px 8px 4px;
+  }
+
+  .local-player-station {
+    flex-direction: row !important;
+    justify-content: space-between;
+    padding: 3px 8px !important;
+    margin-bottom: 2px !important;
+  }
+
+  .hand-fan-container {
+    height: 88px;
+    margin-top: 0;
+    overflow-x: auto;
+  }
+
+  .hand-card-wrapper {
+    margin: 0 2px;
+    transform: none !important;
+  }
+
+  .hand-card-wrapper .card-item {
+    width: 58px;
+    height: 82px;
+  }
+
+  .action-toolbar {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    width: 98vw;
+    padding: 3px 6px;
+    gap: 4px;
+    margin-top: 2px;
+  }
+
+  .action-btn {
+    font-size: 9.5px;
+    padding: 4px 8px;
+    flex-shrink: 0;
+  }
+}
+
+/* Hỗ trợ nút chuyển đổi chủ động #arena-root.mobile-layout-active ngay cả trên màn hình lớn */
+#arena-root.mobile-layout-active .arena-stage {
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: stretch;
+  padding: 6px;
+  overflow-y: auto;
+}
+
+#arena-root.mobile-layout-active .opponents-container {
+  position: relative !important;
+  inset: auto !important;
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  gap: 8px;
+  padding: 4px;
+  pointer-events: auto;
+}
+
+#arena-root.mobile-layout-active .opponents-container .player-station {
+  position: relative !important;
+  top: auto !important;
+  left: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  transform: none !important;
+  flex: 0 0 auto;
+  min-width: 160px;
+  margin: 0 auto;
+}
+
+#arena-root.mobile-layout-active .opponents-container .station-field-slots {
+  flex-direction: row;
+  gap: 6px;
+}
+
+#arena-root.mobile-layout-active .center-decks-hub {
+  position: relative !important;
+  bottom: auto !important;
+  right: auto !important;
+  margin: 4px auto;
+  border-radius: 999px;
+  padding: 4px 12px;
+}
+
+#arena-root.mobile-layout-active .deck-slot {
+  flex-direction: row;
+  gap: 5px;
+}
+
+#arena-root.mobile-layout-active .deck-mini-card {
+  width: 30px;
+  height: 40px;
+}
+
+#arena-root.mobile-layout-active .hand-fan-container {
+  height: 126px;
+  margin-top: 0;
+  overflow-x: auto;
+  justify-content: flex-start;
+  padding: 10px 14px 4px;
+  gap: 6px;
+}
+
+#arena-root.mobile-layout-active .hand-card-wrapper {
+  margin: 0;
+  flex: 0 0 auto;
+  transform: none !important;
+}
+
+#arena-root.mobile-layout-active .hand-card-wrapper:first-child {
+  margin-left: auto;
+}
+
+#arena-root.mobile-layout-active .hand-card-wrapper:last-child {
+  margin-right: auto;
+}
+
+#arena-root.mobile-layout-active .action-toolbar {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 5px;
+  width: 96vw;
+  max-width: 680px;
+}

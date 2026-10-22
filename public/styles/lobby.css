@@ -1,0 +1,400 @@
+/* ==========================================================================
+   HOME LOBBY & ROOM CREATION STYLES — ĐẤU TRƯỜNG XÓM BẤT ỔN
+   Vietnamese Urban Pop-Art Home Screen (Tương thích Desktop, Tablet & Điện Thoại)
+   ========================================================================== */
+
+.home-lobby-root {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  background: radial-gradient(circle at 50% 30%, #2e125b 0%, #100624 85%);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: calc(18px + var(--safe-top, 0px)) 20px calc(20px + var(--safe-bottom, 0px));
+  color: #fff;
+  z-index: 10;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Hiệu ứng nền đèn đường & phố xá */
+.lobby-backdrop-fx {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: 
+    radial-gradient(circle at 20% 25%, rgba(245, 158, 11, 0.15) 0%, transparent 45%),
+    radial-gradient(circle at 80% 30%, rgba(217, 70, 239, 0.12) 0%, transparent 45%),
+    linear-gradient(rgba(14, 7, 26, 0.6) 0%, rgba(14, 7, 26, 0.95) 100%);
+  z-index: 0;
+}
+
+/* Header & Logo */
+.lobby-header {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  margin-top: 6px;
+}
+
+.lobby-logo-title {
+  font-family: var(--font-display);
+  font-size: clamp(28px, 6.5vw, 54px);
+  letter-spacing: 2px;
+  line-height: 1.1;
+  color: var(--accent-neon);
+  text-shadow: 
+    3px 3px 0 #000,
+    -2px -2px 0 #000,
+    0 0 25px rgba(250, 204, 21, 0.8),
+    0 0 50px rgba(245, 158, 11, 0.5);
+}
+
+.lobby-tagline {
+  font-family: var(--font-heading);
+  font-size: clamp(11px, 2.2vw, 15px);
+  font-weight: 800;
+  color: #fef08a;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-top: 6px;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+}
+
+/* Hero Cards Display Showcase */
+.lobby-hero-showcase {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  margin: 16px 0;
+}
+
+.hero-card-preview {
+  width: 140px;
+  height: 200px;
+  border-radius: var(--radius-md);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.8), 0 0 20px rgba(245, 158, 11, 0.3);
+  border: 2px solid var(--accent-warm);
+  transform-style: preserve-3d;
+  transition: transform 0.3s ease;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.hero-card-preview:nth-child(1) { transform: rotate(-8deg) translateY(10px); }
+.hero-card-preview:nth-child(2) { transform: rotate(0deg) scale(1.1); z-index: 5; border-color: var(--accent-neon); }
+.hero-card-preview:nth-child(3) { transform: rotate(8deg) translateY(10px); }
+
+.hero-card-preview:hover {
+  transform: translateY(-12px) scale(1.15) !important;
+  z-index: 10;
+  box-shadow: 0 20px 40px rgba(250, 204, 21, 0.5);
+}
+
+/* Nhóm nút Menu Hành Động */
+.lobby-menu-group {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 440px;
+}
+
+.lobby-main-btn {
+  font-family: var(--font-heading);
+  font-size: 16px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 14px 24px;
+  border-radius: var(--radius-md);
+  border: 2px solid #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.6);
+  transition: all var(--transition-fast);
+  text-align: center;
+}
+
+.lobby-main-btn.btn-quick-play {
+  background: linear-gradient(135deg, #f59e0b, #ef4444);
+  color: #fff;
+  font-size: 18px;
+  padding: 16px 28px;
+  box-shadow: 0 0 25px rgba(245, 158, 11, 0.6);
+  animation: pulseQuickPlay 1.8s infinite alternate;
+}
+
+@keyframes pulseQuickPlay {
+  from { transform: scale(1); }
+  to { transform: scale(1.03); box-shadow: 0 0 35px rgba(250, 204, 21, 0.85); }
+}
+
+.lobby-main-btn.btn-create-room {
+  background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+  color: #fff;
+}
+
+.lobby-main-btn.btn-view-cards {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: var(--text-main);
+}
+
+.lobby-main-btn:hover {
+  transform: translateY(-3px);
+  filter: brightness(1.15);
+}
+
+/* Modal Tạo Phòng Custom */
+.room-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 4, 20, 0.88);
+  backdrop-filter: blur(10px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.room-modal-box {
+  width: 100%;
+  max-width: 540px;
+  background: rgba(24, 12, 48, 0.96);
+  border: 2px solid var(--accent-warm);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.9), 0 0 30px rgba(245, 158, 11, 0.4);
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  color: #fff;
+  max-height: 90vh;
+  max-height: 90dvh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.room-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid rgba(245, 158, 11, 0.3);
+  padding-bottom: 12px;
+}
+
+.room-modal-title {
+  font-family: var(--font-display);
+  font-size: 26px;
+  color: var(--accent-neon);
+  letter-spacing: 1px;
+}
+
+.form-group-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-label-title {
+  font-family: var(--font-heading);
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--text-main);
+  text-transform: uppercase;
+}
+
+.form-input-text {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  color: #fff;
+  font-family: var(--font-body);
+  font-size: 14px;
+  outline: none;
+  transition: border-color var(--transition-fast);
+}
+
+.form-input-text:focus {
+  border-color: var(--accent-neon);
+  box-shadow: 0 0 10px rgba(250, 204, 21, 0.4);
+}
+
+/* Chọn số người chơi dạng nút tròn */
+.options-pills-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.option-pill-btn {
+  flex: 1;
+  min-width: 72px;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
+  border-radius: var(--radius-sm);
+  color: #fff;
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 12.5px;
+  cursor: pointer;
+  text-align: center;
+  transition: all var(--transition-fast);
+}
+
+.option-pill-btn.active {
+  background: var(--accent-warm);
+  border-color: #fff;
+  color: #000;
+  box-shadow: 0 0 12px var(--accent-warm);
+}
+
+/* Chọn nhân vật đại diện */
+.character-select-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.char-choice-card {
+  padding: 8px 6px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  transition: all var(--transition-fast);
+}
+
+.char-choice-card.active {
+  border-color: var(--accent-neon);
+  background: rgba(250, 204, 21, 0.15);
+  box-shadow: 0 0 12px rgba(250, 204, 21, 0.5);
+}
+
+.char-choice-name {
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+}
+
+/* Nút bắt đầu trận */
+.btn-launch-game {
+  background: linear-gradient(135deg, #f59e0b, #ef4444);
+  color: #fff;
+  font-family: var(--font-heading);
+  font-size: 16px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 14px;
+  border-radius: var(--radius-md);
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(239, 68, 68, 0.5);
+  transition: all var(--transition-fast);
+}
+
+.btn-launch-game:hover {
+  filter: brightness(1.15);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(250, 204, 21, 0.7);
+}
+
+.online-form-grid,
+.online-actions-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+/* ==========================================================================
+   RESPONSIVE LOBBY CHO ĐIỆN THOẠI (<= 768PX & <= 480PX)
+   ========================================================================== */
+@media (max-width: 768px) {
+  .home-lobby-root {
+    padding: calc(10px + var(--safe-top, 0px)) 12px calc(14px + var(--safe-bottom, 0px));
+    justify-content: flex-start;
+    gap: 10px;
+  }
+
+  .lobby-hero-showcase {
+    gap: 10px;
+    margin: 8px 0;
+  }
+
+  .hero-card-preview {
+    width: 96px;
+    height: 138px;
+  }
+
+  .lobby-menu-group {
+    gap: 9px;
+    max-width: 96vw;
+  }
+
+  .lobby-main-btn {
+    font-size: 13.5px;
+    padding: 12px 14px;
+  }
+
+  .lobby-main-btn.btn-quick-play {
+    font-size: 15px;
+    padding: 14px 16px;
+  }
+
+  .room-modal-overlay {
+    padding: 8px;
+  }
+
+  .room-modal-box {
+    padding: 14px 12px;
+    gap: 12px;
+    max-height: 92dvh;
+  }
+
+  .room-modal-title {
+    font-size: 20px;
+  }
+
+  .online-form-grid,
+  .online-actions-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .hero-card-preview {
+    width: 82px;
+    height: 118px;
+  }
+
+  .character-select-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 6px;
+  }
+
+  .option-pill-btn {
+    font-size: 11.5px;
+    padding: 7px 8px;
+  }
+}

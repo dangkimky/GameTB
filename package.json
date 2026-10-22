@@ -1,0 +1,25 @@
+{
+  "name": "dau-truong-xom-bat-on",
+  "version": "1.0.0",
+  "description": "Dau Truong Xom Bat On - Realtime Vietnamese Urban Pop-Art Strategy Card Game",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/core/*.test.js tests/unit/*.test.js tests/integration/*.test.js",
+    "test:core": "node --test tests/core/*.test.js",
+    "test:integration": "node --test tests/integration/*.test.js",
+    "build": "echo 'Build complete'",
+    "start": "node server/index.js"
+  },
+  "keywords": [
+    "card-game",
+    "vietnamese-pop-art",
+    "multiplayer",
+    "vfx-engine"
+  ],
+  "author": "Antigravity Agent",
+  "license": "MIT",
+  "dependencies": {
+    "ws": "^8.22.0"
+  }
+}
