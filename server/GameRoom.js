@@ -13,10 +13,73 @@ export class GameRoom {
     this.isPublic = isPublic !== undefined ? Boolean(isPublic) : true;
     this.createdAt = Date.now();
     this.status = 'LOBBY'; // 'LOBBY' | 'IN_GAME' | 'FINISHED'
-    this.players = new Map(); // id -> { id, name, characterId, isReady, ws, isHost }
+    this.players = new Map(); // id -> { id, name, characterId, isReady, isHost, token }
     this.gameState = null;
-    this.turnTimer = null;
+    this.turnDeadline = null; // Mốc thời gian (ms) hết lượt — kiểm tra lười mỗi khi có request (serverless, không dùng setTimeout)
     this.turnTimeoutSeconds = 60;
+    this.chat = []; // Tin nhắn gần nhất: { seq, senderId, senderName, text, time }
+    this.chatSeq = 0;
+  }
+
+  /**
+   * Chuyển phòng thành JSON thuần để lưu vào Netlify Database
+   */
+  toJSON() {
+    return {
+      roomId: this.roomId,
+      hostPlayerId: this.hostPlayerId,
+      hostName: this.hostName,
+      roomName: this.roomName,
+      maxPlayers: this.maxPlayers,
+      isTeamMode: this.isTeamMode,
+      fillBots: this.fillBots,
+      isPublic: this.isPublic,
+      createdAt: this.createdAt,
+      status: this.status,
+      players: Array.from(this.players.values()),
+      gameState: this.gameState,
+      turnDeadline: this.turnDeadline,
+      turnTimeoutSeconds: this.turnTimeoutSeconds,
+      chat: this.chat,
+      chatSeq: this.chatSeq
+    };
+  }
+
+  static fromJSON(data) {
+    const room = new GameRoom({
+      roomId: data.roomId,
+      hostPlayerId: data.hostPlayerId,
+      hostName: data.hostName,
+      maxPlayers: data.maxPlayers,
+      isTeamMode: data.isTeamMode,
+      fillBots: data.fillBots,
+      isPublic: data.isPublic,
+      roomName: data.roomName
+    });
+    room.createdAt = data.createdAt || Date.now();
+    room.status = data.status || 'LOBBY';
+    room.players = new Map((data.players || []).map(p => [p.id, p]));
+    room.gameState = data.gameState || null;
+    room.turnDeadline = data.turnDeadline || null;
+    room.turnTimeoutSeconds = data.turnTimeoutSeconds || 60;
+    room.chat = data.chat || [];
+    room.chatSeq = data.chatSeq || 0;
+    return room;
+  }
+
+  addChatMessage({ senderId, senderName, text }) {
+    const clean = String(text || '').trim().slice(0, 300);
+    if (!clean) return null;
+    const msg = {
+      seq: ++this.chatSeq,
+      senderId,
+      senderName: senderName || 'Vô Danh',
+      text: clean,
+      time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Ho_Chi_Minh' })
+    };
+    this.chat.push(msg);
+    if (this.chat.length > 30) this.chat = this.chat.slice(-30);
+    return msg;
   }
 
   getHostName() {
@@ -24,7 +87,7 @@ export class GameRoom {
     return host ? host.name : (this.hostName || 'Chủ Phòng');
   }
 
-  addPlayer({ id, name, characterId = null, ws = null }) {
+  addPlayer({ id, name, characterId = null, token = null }) {
     if (this.status !== 'LOBBY') {
       throw new Error('Phòng đang trong trận đấu, không thể tham gia');
     }
@@ -59,7 +122,7 @@ export class GameRoom {
       characterId: assignedChar,
       isReady: isHost,
       isHost,
-      ws
+      token
     });
 
     return this.getLobbyInfo();
@@ -225,41 +288,29 @@ export class GameRoom {
     return masked;
   }
 
-  broadcast(message) {
-    for (const p of this.players.values()) {
-      if (p.ws && p.ws.readyState === 1) {
-        p.ws.send(JSON.stringify(message));
-      }
-    }
-  }
-
-  broadcastState() {
-    for (const p of this.players.values()) {
-      if (p.ws && p.ws.readyState === 1) {
-        const masked = this.maskStateForPlayer(p.id);
-        p.ws.send(JSON.stringify({
-          type: 'GAME_STATE_UPDATE',
-          state: masked
-        }));
-      }
-    }
-  }
-
   stopTurnTimer() {
-    if (this.turnTimer) {
-      clearTimeout(this.turnTimer);
-      this.turnTimer = null;
+    this.turnDeadline = null;
+  }
+
+  resetTurnTimer(now = Date.now()) {
+    this.turnDeadline = now + this.turnTimeoutSeconds * 1000;
+  }
+
+  /**
+   * Tự động qua lượt nếu người chơi hiện tại đã hết giờ. Trả về true nếu trạng thái thay đổi.
+   */
+  checkTurnTimeout(now = Date.now()) {
+    if (this.status !== 'IN_GAME' || !this.gameState || !this.turnDeadline) return false;
+    if (this.gameState.gameStatus === 'ENDED') {
+      this.stopTurnTimer();
+      return false;
     }
+    if (now < this.turnDeadline) return false;
+    this.handleTurnTimeout(now);
+    return true;
   }
 
-  resetTurnTimer() {
-    this.stopTurnTimer();
-    this.turnTimer = setTimeout(() => {
-      this.handleTurnTimeout();
-    }, this.turnTimeoutSeconds * 1000);
-  }
-
-  handleTurnTimeout() {
+  handleTurnTimeout(now = Date.now()) {
     if (this.status !== 'IN_GAME' || !this.gameState) return;
     const activePlayerId = this.gameState.turnOrder[this.gameState.currentTurnIndex];
     const player = this.gameState.players[activePlayerId];
@@ -273,10 +324,9 @@ export class GameRoom {
       }
 
       GameEngine.endTurn(this.gameState, activePlayerId, discarded);
-      this.broadcastState();
-      this.resetTurnTimer();
     } catch (e) {
       console.error('Lỗi khi auto pass lượt do timeout:', e);
     }
+    this.resetTurnTimer(now);
   }
 }

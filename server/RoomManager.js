@@ -64,8 +64,8 @@ export class RoomManager {
     if (!roomId) return false;
     const norm = String(roomId).trim().toUpperCase();
     const room = this.rooms.get(norm);
-    if (room && room.turnTimer) {
-      clearTimeout(room.turnTimer);
+    if (room) {
+      room.stopTurnTimer();
     }
     return this.rooms.delete(norm);
   }
